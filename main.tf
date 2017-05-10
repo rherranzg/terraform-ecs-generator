@@ -17,8 +17,8 @@ resource "aws_key_pair" "ecs_keypair" {
 ## Create an SG for the EC2 instances ##
 ########################################
 resource "aws_security_group" "allow_internal_traffic" {
-  name        = "ecs_sg_allow_internal_traffic"
-  description = "Allow all internal traffic"
+  name        = "ecs_sg_ecs_instances"
+  description = "SG for ECS instances"
   vpc_id      = "${var.vpc_id}"
 }
 
@@ -62,7 +62,7 @@ resource "aws_launch_configuration" "ecs_lc_instances" {
   instance_type           = "${var.ecs_asg_lc_instance_type}"
   image_id                = "${var.ecs_asg_lc_image_id}"
   security_groups         = [ "${aws_security_group.allow_internal_traffic.id}" ]
-  associate_public_ip_address = true
+  associate_public_ip_address = false
   iam_instance_profile    = "${var.ecs_asg_iam_instance_profile}"
   key_name                = "${aws_key_pair.ecs_keypair.key_name}"
   user_data = <<EOF
@@ -132,81 +132,3 @@ resource "aws_cloudwatch_metric_alarm" "ecs_alarm_decrease_instances" {
   statistic          = "${var.ecs_asg_decrease_statistic}"
   threshold          = "${var.ecs_asg_decrease_threshold}"
 }
-
-/*
-###############################
-## Define ELBs for the services
-###############################
-resource "aws_elb" "rails_frontend" {
-  name = "rails-frontend-elb"
-  cross_zone_load_balancing = true
-  #availability_zones = ["eu-west-1a", "eu-west-1b", "eu-west-1c"]
-  subnets = ["${var.subnets}"]
-
-  listener {
-    lb_port = 80
-    lb_protocol = "http"
-    instance_port = 3000
-    instance_protocol = "http"
-  }
-}
-
-resource "aws_elb" "sinatra_backend" {
-  name = "sinatra-backend-elb"
-  cross_zone_load_balancing = true
-  #availability_zones = ["eu-west-1a", "eu-west-1b", "eu-west-1c"]
-  subnets = ["${var.subnets}"]
-
-  listener {
-    lb_port = 4567
-    lb_protocol = "http"
-    instance_port = 4567
-    instance_protocol = "http"
-  }
-}
-
-###############################
-## Define IAM Roles for the services
-###############################
-/*resource "aws_iam_role" "ecs_role_rails_frontend" {
-  name = "ecs-role-rails-frontend"
-  assume_role_policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Action": "sts:AssumeRole",
-      "Principal": {
-        "Service": "ecs.amazonaws.com"
-      },
-      "Effect": "Allow",
-      "Sid": ""
-    },
-    {
-      "Action": "*",
-      "Effect": "Allow"
-    }
-  ]
-}
-EOF
-}
-
-resource "aws_iam_role" "ecs_role_sinatra_backend" {
-  name = "ecs-role-sinatra-backend"
-  assume_role_policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Action": "sts:AssumeRole",
-      "Principal": {
-        "Service": "ecs.amazonaws.com"
-      },
-      "Effect": "Allow",
-      "Sid": ""
-    }
-  ]
-}
-EOF
-}
-*/
