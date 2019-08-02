@@ -46,12 +46,41 @@ resource "aws_security_group_rule" "allow_all_outbound" {
 resource "aws_autoscaling_group" "ecs_cluster_instances" {
   name                  = "ecs-cluster-instances"
   #availability_zones   = ["eu-west-1a", "eu-west-1b", "eu-west-1c"]
-  vpc_zone_identifier   = [ "${var.subnets}" ]
+  vpc_zone_identifier   = ["${var.subnets}"]
   min_size              = "${var.ecs_asg_min_size}"
   max_size              = "${var.ecs_asg_max_size}"
   desired_capacity      = "${var.ecs_asg_min_size}"
   launch_configuration  = "${aws_launch_configuration.ecs_lc_instances.name}"
 #  tags                 = { Name = "ECS-Instance" }
+}
+
+##########################
+## Create IAM resources ##
+##########################
+
+resource "aws_iam_role" "ecs_ec2_role" {
+  name = "ecs_ec2_role"
+
+  assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": "sts:AssumeRole",
+      "Principal": {
+        "Service": "ec2.amazonaws.com"
+      },
+      "Effect": "Allow",
+      "Sid": ""
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_iam_instance_profile" "ecs_ec2_instance_profile" {
+  name = "ecs_ec2_instance_profile"
+  role = "${aws_iam_role.ecs_ec2_role.name}"
 }
 
 #########################################
@@ -63,7 +92,7 @@ resource "aws_launch_configuration" "ecs_lc_instances" {
   image_id                = "${var.ecs_asg_lc_image_id}"
   security_groups         = [ "${aws_security_group.allow_internal_traffic.id}" ]
   associate_public_ip_address = false
-  iam_instance_profile    = "${var.ecs_asg_iam_instance_profile}"
+  iam_instance_profile    = "${aws_iam_instance_profile.ecs_ec2_instance_profile.name}"
   key_name                = "${aws_key_pair.ecs_keypair.key_name}"
   user_data = <<EOF
 #!/bin/bash

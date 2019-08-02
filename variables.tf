@@ -43,12 +43,7 @@ variable "ecs_asg_lc_image_id" {
   default = "ami-95f8d2f3"
 }
 
-variable "ecs_asg_iam_instance_profile" {
-  description = "IAM Profile"
-  default = "ecsInstanceRole"
-}
-
-####################################
+#################################
 ## Variables for the ASG policies
 #################################
 variable "ecs_asg_increase_evaluation_periods" {
